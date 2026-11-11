@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>notArqen</title>
+<meta name="description" content="Everything notArqen has shipped to the browser: games, audio tools and odd little utilities.">
+<meta name="theme-color" content="#06070a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306070a'/%3E%3Cpath d='M9 23 16 8l7 15M12 17h8' stroke='%2367e8f9' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06070a;
+  --panel:rgba(14,17,23,.62);
+  --line:rgba(255,255,255,.07);
+  --line-strong:rgba(255,255,255,.14);
+  --text:#e8ecf2;
+  --dim:#7d8696;
+  --faint:#4a5260;
+  --accent:#67e8f9;
+  --accent-2:#a78bfa;
+  --ease-out:cubic-bezier(.23,1,.32,1);
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);color-scheme:dark}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100svh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:#000}
+a{color:inherit;text-decoration:none}
+
+#field{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 0%,transparent 40%,rgba(6,7,10,.85) 100%)}
+
+.hud{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:center;
+  padding:18px clamp(16px,4vw,40px);font:500 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint);pointer-events:none}
+.hud b{color:var(--dim);font-weight:500}
+.hud .live{display:inline-flex;align-items:center;gap:8px}
+.hud .live i{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+main{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:clamp(96px,16vh,160px) clamp(16px,4vw,40px) 80px}
+
+.eyebrow{font:500 12px/1 var(--mono);color:var(--accent);letter-spacing:.14em;text-transform:uppercase;display:flex;gap:10px;align-items:center}
+.eyebrow::before{content:"";width:28px;height:1px;background:currentColor;opacity:.6}
+
+h1{margin:22px 0 0;font-weight:700;font-size:clamp(56px,13vw,168px);line-height:.86;letter-spacing:-.055em;
+  background:radial-gradient(420px circle at var(--hx,50%) var(--hy,50%),#fff 0%,#cfe9f2 30%,#5d6675 70%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;user-select:none}
+.lede{margin-top:26px;max-width:520px;font-size:clamp(17px,2vw,20px);line-height:1.45;color:var(--dim)}
+.lede strong{color:var(--text);font-weight:500}
+
+.bar{margin-top:72px;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center;
+  padding-bottom:16px;border-bottom:1px solid var(--line)}
+.count{font:500 12px/1 var(--mono);color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.count b{color:var(--text);font-weight:500}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:500 12px/1 var(--mono);letter-spacing:.06em;text-transform:lowercase;color:var(--dim);
+  padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.015);cursor:pointer;
+  transition:color 160ms ease,border-color 160ms ease,background-color 160ms ease,transform 140ms var(--ease-out)}
+.chip:active{transform:scale(.96)}
+.chip[aria-pressed="true"]{color:#001014;background:var(--accent);border-color:var(--accent)}
+@media (hover:hover) and (pointer:fine){.chip:not([aria-pressed="true"]):hover{color:var(--text);border-color:var(--line-strong)}}
+
+.grid{margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+@media (max-width:400px){.grid{grid-template-columns:1fr}}
+
+.card{--mx:-999px;--my:-999px;position:relative;display:flex;flex-direction:column;gap:14px;min-height:190px;padding:22px 22px 20px;
+  border-radius:16px;background:var(--panel);border:1px solid var(--line);isolation:isolate;overflow:hidden;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  transition:transform 220ms var(--ease-out),border-color 220ms ease,opacity 220ms ease;
+  opacity:0;transform:translateY(10px);animation:in 520ms var(--ease-out) forwards;animation-delay:calc(var(--i,0) * 45ms + 120ms)}
+@keyframes in{to{opacity:1;transform:none}}
+.card::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(360px circle at var(--mx) var(--my),rgba(103,232,249,.10),transparent 60%)}
+.card::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;padding:1px;
+  background:radial-gradient(240px circle at var(--mx) var(--my),rgba(103,232,249,.75),rgba(167,139,250,.35) 40%,transparent 70%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.card:active{transform:scale(.985)}
+@media (hover:hover) and (pointer:fine){.card:hover{border-color:transparent}.card:hover .go{color:var(--accent);transform:translate(2px,-2px)}}
+.card.hide{display:none}
+
+.top{display:flex;justify-content:space-between;align-items:center;font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.tag{display:inline-flex;align-items:center;gap:7px}
+.tag i{width:5px;height:5px;border-radius:50%;background:var(--c,var(--accent))}
+.name{font-size:24px;font-weight:600;letter-spacing:-.025em;line-height:1.1}
+.hook{display:block;margin-top:6px;font-size:14px;color:var(--accent);font-weight:500;letter-spacing:-.005em}
+.desc{font-size:14.5px;line-height:1.5;color:var(--dim);flex:1}
+.foot{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px dashed var(--line);
+  font:400 12px/1 var(--mono);color:var(--faint)}
+.go{font-size:16px;color:var(--dim);transition:transform 200ms var(--ease-out),color 160ms ease}
+.new{color:#001014;background:var(--accent);padding:3px 6px;border-radius:4px;font-size:10px;letter-spacing:.08em}
+
+footer{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px) 48px;
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font:500 11px/1.6 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+footer a{color:var(--dim);transition:color 160ms ease}
+@media (hover:hover){footer a:hover{color:var(--accent)}}
+
+@media (prefers-reduced-motion:reduce){
+  .card{animation:fadeonly 300ms ease forwards;transform:none}
+  @keyframes fadeonly{to{opacity:1}}
+  .hud .live i{animation:none}
+}
+@media (max-width:600px){.hud .xy{display:none}.bar{margin-top:52px}}
+</style>
+</head>
+<body>
+<canvas id="field" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<div class="hud" aria-hidden="true">
+  <span class="live"><i></i><b>notarqen.github.io</b></span>
+  <span class="xy">x <b id="cx">0000</b> · y <b id="cy">0000</b> · <b id="clock">--:--:--</b></span>
+</div>
+
+<main>
+  <div class="eyebrow">index / live builds</div>
+  <h1 id="title">notArqen</h1>
+  <p class="lede">Stuff I built that runs <strong>straight in your browser</strong>. Games, audio toys, a few tools. No installs, nothing uploaded.</p>
+
+  <div class="bar">
+    <div class="count"><b id="n">0</b> live sites</div>
+    <div class="filters" role="group" aria-label="Filter">
+      <button class="chip" data-f="all" aria-pressed="true">all</button>
+      <button class="chip" data-f="game" aria-pressed="false">games</button>
+      <button class="chip" data-f="audio" aria-pressed="false">audio</button>
+      <button class="chip" data-f="tool" aria-pressed="false">tools</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>
+  <span>© <span id="yr"></span> notArqen</span>
+  <a href="https://github.com/notArqen" target="_blank" rel="noopener">github.com/notArqen ↗</a>
+</footer>
+
+<script>
+// Curated list. Repos with Pages that aren't in here get pulled in live from the GitHub API.
+const SITES = [
+  {repo:"headunit", name:"Headunit", kind:"audio", desc:"A Kenwood-style car head unit DSP, in a browser tab. EQ your music like it's going into a trunk."},
+  {repo:"loopshot", name:"Loopshot", kind:"tool", hook:"Snap. Snap. Loop.", desc:"Photos to GIF, straight to your camera roll."},
+  {repo:"beatscope", name:"Beatscope", kind:"audio", hook:"Every hit. On the line.", desc:"Monochrome FL-style audio visualizer."},
+  {repo:"tron-slope", name:"Tron Slope", kind:"game", desc:"Slope-style rolling-ball runner on a three.js neon-dystopia renderer."},
+  {repo:"elsewhere", name:"Elsewhere", kind:"audio", hook:"Your sound. Somewhere else.", desc:"Drop in audio and place it in tunnels, stadiums, cars and underwater."},
+  {repo:"microwave-staring-sim", name:"Microwave Staring Sim", kind:"game", desc:"A game about staring at a microwave. Solo, or 2–4 players online, peer-to-peer."},
+  {repo:"one-more", name:"One More", kind:"game", hook:"Press your luck.", desc:"A one-button push-your-luck game with p2p multiplayer."},
+  {repo:"trackfx", name:"TrackFX", kind:"tool", desc:"Unofficial graphics mod for PolyTrack. Not affiliated with Kodub."},
+  {repo:"finger-picker", name:"Finger Picker", kind:"game", desc:"Everyone puts a finger on the screen. One gets picked."},
+  {repo:"bassmax", name:"Bassmax", kind:"audio", desc:"Make sub-bass clips hit like car-audio shorts. Nothing uploaded."},
+  {repo:"audia-v3", name:"Audia", kind:"audio", desc:"A sleek web audio player on Tidal's backend. Needs an active Tidal subscription."},
+  {repo:"relay", name:"Relay", kind:"tool", hook:"encrypted · p2p · ephemeral", desc:"Chat that doesn't stick around."},
+  {repo:"css-to-it", name:"CSS to It", kind:"tool", desc:"Universal online file converter with a snazzier UI."},
+];
+const COLORS = {game:"#a78bfa", audio:"#67e8f9", tool:"#fbbf24"};
+const USER = "notArqen";
+
+const grid = document.getElementById("grid");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function render(list){
+  grid.innerHTML = list.map((s,i) => `
+    <a class="card" data-kind="${esc(s.kind)}" style="--i:${i};--c:${COLORS[s.kind]||"#67e8f9"}"
+       href="https://notarqen.github.io/${encodeURIComponent(s.repo)}/">
+      <div class="top"><span class="tag"><i></i>${esc(s.kind)}</span><span>${s.fresh ? '<span class="new">new</span>' : String(i+1).padStart(2,"0")}</span></div>
+      <div><div class="name">${esc(s.name)}</div>${s.hook ? `<span class="hook">${esc(s.hook)}</span>` : ""}</div>
+      <p class="desc">${esc(s.desc)}</p>
+      <div class="foot"><span>/${esc(s.repo)}</span><span class="go">↗</span></div>
+    </a>`).join("");
+  document.getElementById("n").textContent = list.length;
+  applyFilter(current);
+}
+
+let current = "all";
+function applyFilter(f){
+  current = f;
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.f === f));
+  grid.querySelectorAll(".card").forEach(c => c.classList.toggle("hide", f !== "all" && c.dataset.kind !== f));
+}
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => applyFilter(c.dataset.f)));
+
+render(SITES);
+
+// Pick up any new Pages repos automatically.
+fetch(`https://api.github.com/users/${USER}/repos?per_page=100&sort=pushed`)
+  .then(r => r.ok ? r.json() : [])
+  .then(repos => {
+    const known = new Set(SITES.map(s => s.repo.toLowerCase()));
+    const extra = repos
+      .filter(r => r.has_pages && !r.private && !known.has(r.name.toLowerCase()) && r.name.toLowerCase() !== `${USER.toLowerCase()}.github.io`)
+      .map(r => ({repo:r.name, name:r.name.replace(/[-_]/g," ").replace(/\b\w/g,m=>m.toUpperCase()), kind:"tool", desc:r.description || "Fresh off the bench.", fresh:true}));
+    if (extra.length) render([...extra, ...SITES]);
+  })
+  .catch(() => {});
+
+// Card spotlight: track the pointer per card.
+grid.addEventListener("pointermove", e => {
+  const card = e.target.closest(".card"); if (!card) return;
+  const r = card.getBoundingClientRect();
+  card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  card.style.setProperty("--my", `${e.clientY - r.top}px`);
+});
+grid.addEventListener("pointerout", e => {
+  const card = e.target.closest(".card");
+  if (card && !card.contains(e.relatedTarget)) { card.style.setProperty("--mx","-999px"); card.style.setProperty("--my","-999px"); }
+});
+
+// HUD
+document.getElementById("yr").textContent = new Date().getFullYear();
+const clock = document.getElementById("clock"), cx = document.getElementById("cx"), cy = document.getElementById("cy");
+const tick = () => clock.textContent = new Date().toLocaleTimeString([], {hour12:false});
+tick(); setInterval(tick, 1000);
+
+// Reactive dot field
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cv = document.getElementById("field"), ctx = cv.getContext("2d");
+const title = document.getElementById("title");
+let W, H, dpr, dots = [];
+const GAP = 30, R = 170;
+const target = {x: innerWidth/2, y: innerHeight*0.35}, m = {x: target.x, y: target.y, vx:0, vy:0};
+let active = 0, activeT = 0;
+
+function size(){
+  dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W*dpr; cv.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  dots = [];
+  const ox = (W % GAP)/2, oy = (H % GAP)/2;
+  for (let y = oy; y <= H; y += GAP) for (let x = ox; x <= W; x += GAP) dots.push({x, y, s: Math.random()});
+  if (reduce) draw(0);
+}
+addEventListener("resize", size); size();
+
+addEventListener("pointermove", e => {
+  target.x = e.clientX; target.y = e.clientY; activeT = 1;
+  cx.textContent = String(Math.round(e.clientX)).padStart(4,"0");
+  cy.textContent = String(Math.round(e.clientY)).padStart(4,"0");
+  const r = title.getBoundingClientRect();
+  title.style.setProperty("--hx", `${e.clientX - r.left}px`);
+  title.style.setProperty("--hy", `${e.clientY - r.top}px`);
+}, {passive:true});
+document.addEventListener("pointerleave", () => activeT = 0);
+
+function draw(t){
+  ctx.clearRect(0,0,W,H);
+  // ambient sweep line
+  const sweep = (t*0.00006 % 1.4 - 0.2) * H;
+  for (const d of dots){
+    const dx = d.x - m.x, dy = d.y - m.y, dist = Math.hypot(dx, dy);
+    let px = d.x, py = d.y, a = 0.09 + d.s*0.05, rad = 1;
+    const sw = Math.max(0, 1 - Math.abs(d.y - sweep)/90);
+    a += sw*0.12;
+    if (dist < R && active > 0.01){
+      const f = (1 - dist/R); const k = f*f*active;
+      px += dx/(dist||1) * k * 14; py += dy/(dist||1) * k * 14;
+      a += k*0.85; rad += k*1.3;
+      if (k > 0.25){ ctx.fillStyle = `rgba(103,232,249,${k*0.12})`; ctx.beginPath(); ctx.arc(px,py,rad*4,0,7); ctx.fill(); }
+    }
+    const tint = dist < R ? Math.min(1,(1-dist/R)*1.4*active) : 0;
+    ctx.fillStyle = `rgba(${Math.round(160-57*tint)},${Math.round(175+57*tint)},${Math.round(195+54*tint)},${Math.min(a,1)})`;
+    ctx.fillRect(px - rad/2, py - rad/2, rad, rad);
+  }
+}
+
+if (!reduce){
+  (function loop(t){
+    // spring-follow the pointer so the field has some weight
+    const k = 0.09, damp = 0.72;
+    m.vx = (m.vx + (target.x - m.x)*k)*damp; m.vy = (m.vy + (target.y - m.y)*k)*damp;
+    m.x += m.vx; m.y += m.vy;
+    active += (activeT - active)*0.06;
+    draw(t);
+    requestAnimationFrame(loop);
+  })(0);
+}
+</script>
+</body>
+</html>
